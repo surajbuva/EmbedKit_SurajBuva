@@ -26,11 +26,6 @@ typedef enum
     RINGBUF_ERROR = 1
 } RingBufferStatus;
 
-/* BUFFER_SIZE is 8, which is a power of two.
- * Therefore, index & (BUFFER_SIZE - 1) wraps the index around to 0..7.
- * A bitwise AND is typically cheaper than modulo on MCUs without a hardware
- * divider. This optimization only works for power-of-two buffer sizes.
- */
 static void ringbuf_init(RingBuffer *buffer)
 {
     uint8_t i;
@@ -103,7 +98,6 @@ int main(void)
            ringbuf_is_empty(&buffer) ? "YES" : "NO",
            ringbuf_is_full(&buffer) ? "YES" : "NO");
 
-    /* 1. Fill the buffer with A through H. */
     for (i = 0U; i < BUFFER_SIZE; ++i)
     {
         if (ringbuf_write(&buffer, initial_data[i]) == RINGBUF_OK)
@@ -123,13 +117,11 @@ int main(void)
            ringbuf_is_full(&buffer) ? "FULL" : "NOT FULL",
            (unsigned int)ringbuf_count(&buffer));
 
-    /* 2. A write to a full buffer must fail without overwriting data. */
     if (ringbuf_write(&buffer, 0x99U) == RINGBUF_ERROR)
     {
         printf("[WRITE] 0x99 -> FAIL (buffer full)\n");
     }
 
-    /* 3. Read the first three bytes. */
     for (i = 0U; i < 3U; ++i)
     {
         if (ringbuf_read(&buffer, &value) == RINGBUF_OK)
@@ -142,7 +134,6 @@ int main(void)
     printf("Count after 3 reads: %u (expected 5)\n",
            (unsigned int)ringbuf_count(&buffer));
 
-    /* 4. Write I, J, K into the slots freed by the reads. */
     for (i = 0U; i < 3U; ++i)
     {
         if (ringbuf_write(&buffer, extra_data[i]) == RINGBUF_OK)
@@ -161,7 +152,6 @@ int main(void)
     printf("Count after 3 new writes: %u (expected 8)\n",
            (unsigned int)ringbuf_count(&buffer));
 
-    /* 5. Read all eight remaining bytes in FIFO order. */
     for (i = 0U; i < BUFFER_SIZE; ++i)
     {
         if (ringbuf_read(&buffer, &value) == RINGBUF_OK)
@@ -176,7 +166,6 @@ int main(void)
            ringbuf_is_empty(&buffer) ? "EMPTY" : "NOT EMPTY",
            (unsigned int)ringbuf_count(&buffer));
 
-    /* 6. A read from an empty buffer must fail. */
     if (ringbuf_read(&buffer, &value) == RINGBUF_ERROR)
     {
         printf("[READ] (empty) -> FAIL (buffer empty)\n");
